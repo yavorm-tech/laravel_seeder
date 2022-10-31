@@ -1,0 +1,50 @@
+{
+  "name": "softheroes/laravel-seeder",
+  "description": "Versioned, environment-based Seeders in Laravel. Used while original does not update to Laravel 5.7",
+  "keywords": [
+    "data",
+    "database",
+    "environment",
+    "laravel",
+    "production",
+    "seed",
+    "seeder",
+    "seeding",
+    "staging",
+    "table",
+    "version"
+  ],
+  "type": "library",
+  "license": "MIT",
+  "require": {
+    "php": ">=7.1.0",
+    "illuminate/support": "5.7.*|5.8.*|^6.0|^7.0|^8.0|^9.0",
+    "illuminate/console": "5.7.*|5.8.*|^6.0|^7.0|^8.0|^9.0",
+    "illuminate/database": "5.7.*|5.8.*|^6.0|^7.0|^8.0|^9.0",
+    "illuminate/filesystem": "5.7.*|5.8.*|^6.0|^7.0|^8.0|^9.0",
+    "symfony/finder": "4.*.*|5.*.*|^6.0.0"
+  },
+  "require-dev": {
+    "mockery/mockery": "^1.1",
+    "orchestra/testbench": "^3.0",
+    "phpunit/phpunit": "^7.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Eighty8\\LaravelSeeder\\": "src/LaravelSeeder"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Eighty8\\LaravelSeeder\\Tests\\": "tests/LaravelSeeder"
+    }
+  },
+  "prefer-stable": true,
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Eighty8\\LaravelSeeder\\SeederServiceProvider"
+      ]
+    }
+  }
+}

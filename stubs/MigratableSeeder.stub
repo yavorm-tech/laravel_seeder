@@ -1,0 +1,26 @@
+<?php
+
+//use Eighty8\LaravelSeeder\Migration\MigratableSeeder;
+use Eighty8\LaravelSeeder\Repository\DisableForeignKeysTrait;
+use Illuminate\Database\Migrations\Migration;
+
+class {{class}} extends Migration
+{
+    //use DisableForeignKeysTrait;
+
+    /**
+     * Run the database seeder.
+     */
+    public function run(): void
+    {
+        // Seed your data
+    }
+
+    /**
+     * Reverts the database seeder.
+     */
+    public function down(): void
+    {
+        // Remove your data
+    }
+}
