@@ -58,15 +58,16 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
     /**
      * Create a new migrator instance.
      *
-     * @param SeederRepositoryInterface   $repository
+     * @param SeederRepositoryInterface $repository
      * @param ConnectionResolverInterface $resolver
-     * @param Filesystem                  $files
+     * @param Filesystem $files
      */
     public function __construct(
-        SeederRepositoryInterface $repository,
+        SeederRepositoryInterface   $repository,
         ConnectionResolverInterface $resolver,
-        Filesystem $files
-    ) {
+        Filesystem                  $files
+    )
+    {
         $this->repository = $repository;
         $this->resolver = $resolver;
         $this->files = $files;
@@ -107,8 +108,8 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
      * Run "up" a seeder instance.
      *
      * @param string $file
-     * @param int    $batch
-     * @param bool   $pretend
+     * @param int $batch
+     * @param bool $pretend
      */
     public function runUp($file, $batch, $pretend): void
     {
@@ -156,7 +157,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
      *
      * @param array $migrations
      * @param array $paths
-     * @param bool  $pretend
+     * @param bool $pretend
      *
      * @return array
      */
@@ -167,7 +168,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
         // property on the objects so that we can pass it to the rollback method.
         //$resolvedMigrations = $this->resolvePath();
         $migrations = collect($migrations)->map(function ($m) {
-            return (object) ['seed' => $m];
+            return (object)['seed' => $m];
         })->all();
 
         return $this->rollbackMigrations(
@@ -178,9 +179,9 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
     /**
      * Rollback the given migrations.
      *
-     * @param array        $migrations
+     * @param array $migrations
      * @param array|string $paths
-     * @param array        $options
+     * @param array $options
      *
      * @return array
      */
@@ -209,7 +210,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
      *
      * @param string $file
      * @param object $migration
-     * @param bool   $pretend
+     * @param bool $pretend
      *
      * @return void
      */
@@ -244,7 +245,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
     /**
      * Resolve a migration instance from a migration path.
      *
-     * @param  string  $path
+     * @param string $path
      * @return object
      */
     public function resolvePath(string $path)
@@ -264,18 +265,19 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
     /**
      * Get the name of the migration.
      *
-     * @param  string  $path
+     * @param string $path
      * @return string
      */
     public function getMigrationName($path)
     {
         return str_replace('.php', '', basename($path));
     }
+
     /**
      * Run a migration inside a transaction if the database supports it.
      *
-     * @param  object  $migration
-     * @param  string  $method
+     * @param object $migration
+     * @param string $method
      * @return void
      */
     public function runMigration($migration, $method)
@@ -304,18 +306,18 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
     /**
      * Rolls all of the currently applied migrations back.
      *
-     * @param  array|string  $paths
-     * @param  bool  $pretend
+     * @param array|string $paths
+     * @param bool $pretend
      * @return array
      */
     public function reset($paths = [], $pretend = false)
     {
         $files = $paths;
-        foreach($files as $file){
+        foreach ($files as $file) {
             $migration_objects[] = $this->resolvePath($file);
         }
 
-        $this->rollbackMigrations($migration_objects, [],[]);
+        $this->rollbackMigrations($migration_objects, [], []);
     }
 }
 
