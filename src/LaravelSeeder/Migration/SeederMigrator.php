@@ -116,6 +116,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
         // First we will resolve a "real" instance of the seeder class from this
         // seeder file name. Once we have the instances we can run the actual
         // command such as "up" or "down", or we can just simulate the action.
+
         $migration = $this->resolvePath($file);
 
         $name = $this->getMigrationName($file);
@@ -136,6 +137,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
         // Once we have run a migrations class, we will log that it was run in this
         // repository so that we don't try to run it next time we do a migration
         // in the application. A migration repository keeps the migrate order.
+
         $this->repository->log($name, $batch);
         $this->output->writeln("<info>Seeded:</info>  {$name} ({$runTime}ms)");
     }
@@ -153,30 +155,6 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
     }
 
     /**
-     * Reset the given migrations.
-     *
-     * @param array $migrations
-     * @param array $paths
-     * @param bool $pretend
-     *
-     * @return array
-     */
-    protected function resetMigrations(array $migrations, array $paths, $pretend = false)
-    {
-        // Since the getRan method that retrieves the migration name just gives us the
-        // migration name, we will format the names into objects with the name as a
-        // property on the objects so that we can pass it to the rollback method.
-        //$resolvedMigrations = $this->resolvePath();
-        $migrations = collect($migrations)->map(function ($m) {
-            return (object)['seed' => $m];
-        })->all();
-
-        return $this->rollbackMigrations(
-            $migrations, $paths, compact('pretend')
-        );
-    }
-
-    /**
      * Rollback the given migrations.
      *
      * @param array $migrations
@@ -191,9 +169,6 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
 
         $this->requireFiles($files = $this->getMigrationFiles($paths));
 
-        // Next we will run through all of the migrations and call the "down" method
-        // which will reverse each migration in order. This getLast method on the
-        // repository already returns these migration's names in reverse order.
         $rolledBack = $this->repository->getRan(); // TODO: populate the list in the foreach loop, figure out how to get the full file name
         foreach ($migrations as $migration) {
             $class_basename = class_basename($migration);
@@ -232,9 +207,6 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
 
         $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
 
-        // Once we have run a migrations class, we will log that it was run in this
-        // repository so that we don't try to run it next time we do a migration
-        // in the application. A migration repository keeps the migrate order.
         $migration_for_rollback = $this->repository->getCurrent($name);
 
         $this->repository->delete($migration_for_rollback[0]);
@@ -304,7 +276,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
 
 
     /**
-     * Rolls all of the currently applied migrations back.
+     * Resets the currently applied migrations back.
      *
      * @param array|string $paths
      * @param bool $pretend
