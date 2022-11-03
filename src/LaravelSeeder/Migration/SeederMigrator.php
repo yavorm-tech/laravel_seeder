@@ -3,6 +3,7 @@
 namespace Eighty8\LaravelSeeder\Migration;
 
 use Eighty8\LaravelSeeder\Repository\SeederRepositoryInterface;
+use Illuminate\Console\OutputStyle;
 use Illuminate\Database\ConnectionResolverInterface;
 use Illuminate\Database\Events\MigrationEnded;
 use Illuminate\Database\Events\MigrationStarted;
@@ -13,7 +14,9 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use phpDocumentor\Reflection\Types\ClassString;
 use phpDocumentor\Reflection\Types\Object_;
+use Psy\Readline\Hoa\ConsoleInput;
 use ReflectionClass;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class SeederMigrator extends Migrator implements SeederMigratorInterface
 {
@@ -67,6 +70,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
         $this->repository = $repository;
         $this->resolver = $resolver;
         $this->files = $files;
+        $this->output = new ConsoleOutput();
     }
 
     /**
@@ -106,31 +110,33 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
      * @param int    $batch
      * @param bool   $pretend
      */
-    protected function runUp($file, $batch, $pretend): void
+    public function runUp($file, $batch, $pretend): void
     {
         // First we will resolve a "real" instance of the seeder class from this
         // seeder file name. Once we have the instances we can run the actual
         // command such as "up" or "down", or we can just simulate the action.
-        $seeder = $this->resolve(
-            $name = $this->getMigrationName($file)
-        );
+        $migration = $this->resolvePath($file);
 
-        $this->note("<comment>Seeding:</comment> {$name}");
+        $name = $this->getMigrationName($file);
 
         if ($pretend) {
-            $this->pretendToRun($seeder, 'run');
-
-            return;
+            $this->pretendToRun($migration, 'run');
         }
+        $this->output->writeln("<comment>Seeding:</comment> {$name}");
 
-        $seeder->run();
+        //$this->note("<comment>Seeding:</comment> {$name}");
+
+        $startTime = microtime(true);
+
+        $this->runMigration($migration, 'run');
+
+        $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
 
         // Once we have run a migrations class, we will log that it was run in this
-        // repository so that we don't try to run it next time we do a seeder
-        // in the application. A seeder repository keeps the migrate order.
+        // repository so that we don't try to run it next time we do a migration
+        // in the application. A migration repository keeps the migrate order.
         $this->repository->log($name, $batch);
-
-        $this->note("<info>Seeded:</info> $name");
+        $this->output->writeln("<info>Seeded:</info>  {$name} ({$runTime}ms)");
     }
 
     /**
@@ -189,7 +195,10 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
         // repository already returns these migration's names in reverse order.
         $rolledBack = $this->repository->getRan(); // TODO: populate the list in the foreach loop, figure out how to get the full file name
         foreach ($migrations as $migration) {
-            // $rolledBack[] = $files[$migration->seed];
+            $class_basename = class_basename($migration);
+            $reflection_class = new ReflectionClass($class_basename);
+            $migration_filename = $reflection_class->getFileName();
+            $this->output->writeln("<comment>Rolling Back:</comment> {$migration_filename}");
             $this->runMigration($migration, 'down');
         }
         return $rolledBack;
@@ -204,32 +213,32 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
      *
      * @return void
      */
-    protected function runDown($file, $migration, $pretend): void
+    public function runDown($file, $migration, $pretend): void
     {
-        // First we will get the file name of the seeder so we can resolve out an
-        // instance of the seeder. Once we get an instance we can either run a
-        // pretend execution of the seeder or we can run the real seeder.
-        $seeder = $this->resolve(
-            $name = $this->getMigrationName($file)
-        );
+        $migration = $this->resolvePath($file);
 
-        $this->note("<comment>Rolling back:</comment> {$name}");
+        $name = $this->getMigrationName($file);
 
         if ($pretend) {
-            $this->pretendToRun($seeder, 'down');
-
-            return;
+            $this->pretendToRun($migration, 'down');
         }
 
-        // Run "down" the seeder
-        $seeder->down();
+        $this->output->writeln("<comment>Rolling Back:</comment> {$name}");
 
-        // Once we have successfully run the seeder "down" we will remove it from
-        // the migration repository so it will be considered to have not been run
-        // by the application then will be able to fire by any later operation.
-        $this->repository->delete($migration);
+        $startTime = microtime(true);
 
-        $this->note("<info>Rolled back:</info>  {$name}");
+        $this->runMigration($migration, 'down');
+
+        $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
+
+        // Once we have run a migrations class, we will log that it was run in this
+        // repository so that we don't try to run it next time we do a migration
+        // in the application. A migration repository keeps the migrate order.
+        $migration_for_rollback = $this->repository->getCurrent($name);
+
+        $this->repository->delete($migration_for_rollback[0]);
+
+        $this->output->writeln("<info>Seeded:</info>  {$name} ({$runTime}ms)");
     }
 
     /**
@@ -241,7 +250,6 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
     public function resolvePath(string $path)
     {
         $test = $this->getMigrationName($path);
-        $className = $this->getMigrationClass($test);
         $class = $this->getMigrationClass($this->getMigrationName($path));
 
         if (class_exists($class) && realpath($path) == (new ReflectionClass($class))->getFileName()) {
@@ -292,72 +300,7 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
             : $callback();
     }
 
-    /**
-     * Run "up" a migration instance.
-     *
-     * @param  string  $file
-     * @param  int  $batch
-     * @param  bool  $pretend
-     * @return void
-     */
-    public function runNewUp($file, $batch, $pretend)
-    {
-        // First we will resolve a "real" instance of the migration class from this
-        // migration file name. Once we have the instances we can run the actual
-        // command such as "up" or "down", or we can just simulate the action.
-        $migration = $this->resolvePath($file);
 
-        $name = $this->getMigrationName($file);
-
-        if ($pretend) {
-            return $this->pretendToRun($migration, 'run');
-        }
-
-        $this->note("<comment>Seeding:</comment> {$name}");
-
-        $startTime = microtime(true);
-
-        $this->runMigration($migration, 'run');
-
-        $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
-
-        // Once we have run a migrations class, we will log that it was run in this
-        // repository so that we don't try to run it next time we do a migration
-        // in the application. A migration repository keeps the migrate order.
-        $this->repository->log($name, $batch);
-
-        $this->note("<info>Seeded:</info>  {$name} ({$runTime}ms)");
-    }
-
-    public function runNewDown($file, $batch, $pretend){
-        // First we will resolve a "real" instance of the migration class from this
-        // migration file name. Once we have the instances we can run the actual
-        // command such as "up" or "down", or we can just simulate the action.
-        $migration = $this->resolvePath($file);
-
-        $name = $this->getMigrationName($file);
-
-        if ($pretend) {
-            return $this->pretendToRun($migration, 'down');
-        }
-
-        $this->note("<comment>Rolling Back:</comment> {$name}");
-
-        $startTime = microtime(true);
-
-        $this->runMigration($migration, 'down');
-
-        $runTime = number_format((microtime(true) - $startTime) * 1000, 2);
-
-        // Once we have run a migrations class, we will log that it was run in this
-        // repository so that we don't try to run it next time we do a migration
-        // in the application. A migration repository keeps the migrate order.
-        $migration_for_rollback = $this->repository->getCurrent($name);
-
-        $this->repository->delete($migration_for_rollback[0]);
-
-        $this->note("<info>Seeded:</info>  {$name} ({$runTime}ms)");
-    }
     /**
      * Rolls all of the currently applied migrations back.
      *
@@ -367,29 +310,12 @@ class SeederMigrator extends Migrator implements SeederMigratorInterface
      */
     public function reset($paths = [], $pretend = false)
     {
-        // Next, we will reverse the migration list so we can run them back in the
-        // correct order for resetting this database. This will allow us to get
-        // the database back into its "empty" state ready for the migrations.
-        $migrations = array_reverse($this->repository->getRan());
-        foreach($this->files as $migration){
-            $migr_objects[]=$this->resolvePath($migration);
-        }
-        $dummy='test';
-        if (count($migrations) === 0) {
-            $this->note('<info>Nothing to rollback.</info>');
-
-            return [];
-        }
-
-        return $this->resetMigrations($migrations, $paths, $pretend);
-    }
-    public function newReset($files=[]){
+        $files = $paths;
         foreach($files as $file){
             $migration_objects[] = $this->resolvePath($file);
         }
 
         $this->rollbackMigrations($migration_objects, [],[]);
     }
-
 }
 
