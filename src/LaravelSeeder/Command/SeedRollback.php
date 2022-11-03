@@ -34,25 +34,22 @@ class SeedRollback extends AbstractSeedMigratorCommand
 
         // Prepare the migrator.
         $this->prepareMigrator();
-        $pretend =  $this->input->getOption('pretend');
-        if(!$pretend){
-            $this->info('Rolling back seeded data for '.ucfirst($this->getEnvironment()).' environment...');
+        $pretend = $this->input->getOption('pretend');
+        if (!$pretend) {
+            $this->info('Rolling back seeded data for ' . ucfirst($this->getEnvironment()) . ' environment...');
             $pretend = false;
-            foreach($this->files as $path) {
+            foreach ($this->files as $path) {
                 $this->migrator->runDown($path, 0, $pretend);
             }
-            $this->info('Rolled back seeded data for '.ucfirst($this->getEnvironment()).' environment');
-        }else {
-            $this->info('Pretending to be rolling back seeded data for '.ucfirst($this->getEnvironment()).' environment...');
+            $this->info('Rolled back seeded data for ' . ucfirst($this->getEnvironment()) . ' environment');
+        } else {
+            $this->info('Pretending to be rolling back seeded data for ' . ucfirst($this->getEnvironment()) . ' environment...');
             $pretend = true;
-            foreach($this->files as $path) {
+            foreach ($this->files as $path) {
                 $this->migrator->runDown($path, 0, $pretend);
             }
-            $this->info('Pretended to roll back seeded data for '.ucfirst($this->getEnvironment()).' environment');
+            $this->info('Pretended to roll back seeded data for ' . ucfirst($this->getEnvironment()) . ' environment');
         }
-
-
-
 
 
     }

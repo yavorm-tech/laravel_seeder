@@ -52,7 +52,6 @@ class SeedRun extends AbstractSeedMigratorCommand
             }
             $this->info('Pretended to be seeding data for '.ucfirst($this->getEnvironment()).' environment.');
         }
-
     }
 
     /**
